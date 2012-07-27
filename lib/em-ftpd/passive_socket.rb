@@ -11,6 +11,11 @@ module EM::FTPD
     def self.start(host, control_server)
       EventMachine.start_server(host, 0, self) do |conn|
         control_server.datasocket = conn
+        if control_server.securedatachannel == true
+                  control_server.datasocket.start_tls(:private_key_file => control_server.get_private_key,
+            :cert_chain_file => control_server.get_certificate,
+            :verify_peer => false)
+        end
       end
     end
 

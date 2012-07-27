@@ -16,10 +16,11 @@ module EM::FTPD
 
     COMMANDS = %w[quit type user retr stor eprt port cdup cwd dele rmd pwd
                   list size syst mkd pass xcup xpwd xcwd xrmd rest allo nlst
-                  pasv epsv help noop mode rnfr rnto stru feat]
+                  pasv epsv help noop mode rnfr rnto stru feat auth pbsz prot]
 
     attr_reader :root, :name_prefix
     attr_accessor :datasocket
+    attr_accessor :securedatachannel
 
     def initialize(driver, *args)
       if driver.is_a?(Class) && args.empty?
@@ -31,6 +32,7 @@ module EM::FTPD
       end
       @datasocket = nil
       @listen_sig = nil
+      @securedatachannel  = false
       super()
     end
 
@@ -57,6 +59,14 @@ module EM::FTPD
       else
         send_response "500 Sorry, I don't understand #{cmd.upcase}"
       end
+    end
+
+     def get_private_key
+      return @driver.get_private_key
+    end
+
+    def get_certificate
+      return @driver.get_certificate
     end
 
     private
@@ -117,9 +127,11 @@ module EM::FTPD
       send_response "214 End of list."
     end
 
+
     def cmd_feat(param)
       str = "211- Supported features:#{LBRK}"
-      features = %w{ EPRT EPSV SIZE }
+      features = %w{ EPRT EPSV SIZE PROT PBSZ }
+      str << "AUTH TLS" << LBRK
       features.each do |feat|
         str << " #{feat}" << LBRK
       end
@@ -127,6 +139,29 @@ module EM::FTPD
 
       send_response(str, true)
     end
+
+    def cmd_auth(param)
+      send_response "234 " << "\r\n"
+      start_tls(:private_key_file => self.get_private_key,
+            :cert_chain_file => self.get_certificate,
+            :verify_peer => false)
+    end
+
+
+    def cmd_pbsz(param)
+      send_response "200"
+    end
+
+    def cmd_prot(param)
+      if param == "P"
+        @securedatachannel = true
+        send_response "200"
+      else
+        @securedatachannel = false
+        send_response "514"   #  TODO
+      end
+    end
+
 
     # the original FTP spec had various options for hosts to negotiate how data
     # would be sent over the data socket, In reality these days (S)tream mode
