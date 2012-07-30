@@ -13,6 +13,6 @@ config_file = ARGV.first
 if config_file && File.file?(config_file)
   EM::FTPD::App.start(config_file)
 else
-  $stderr.puts "USAGE: em-ftpd <config.rb>"
+  $stderr.puts "USAGE: em-ftpd <config.rb  sdss>"
   exit 1
 end

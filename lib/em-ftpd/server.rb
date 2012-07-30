@@ -149,13 +149,13 @@ module EM::FTPD
 
 
     def cmd_pbsz(param)
-      send_response "200"
+      send_response "200 \r\n" , true
     end
 
     def cmd_prot(param)
       if param == "P"
         @securedatachannel = true
-        send_response "200"
+        send_response "200 \r\n", true
       else
         @securedatachannel = false
         send_response "514"   #  TODO
